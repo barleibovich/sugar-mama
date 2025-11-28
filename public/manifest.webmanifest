@@ -1,0 +1,12 @@
+{
+  "name": "SugarMama – מעקב סוכרת הריונית",
+  "short_name": "SugarMama",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f7fb",
+  "theme_color": "#2563eb",
+  "lang": "he",
+  "scope": "/",
+  "description": "מעקב סוכר הריון עם הזנת מדידות, טווחים, וייצוא PDF.",
+  "icons": []
+}
