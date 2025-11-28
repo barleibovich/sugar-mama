@@ -79,3 +79,9 @@ vite.config.ts.timestamp-*
 *.pid
 *.seed
 *.pid.lock
+
+############################
+# Generated PDF Fonts
+############################
+src/pdf/*.js
+!src/pdf/HebrewFont-normal.js
