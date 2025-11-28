@@ -1,5 +1,5 @@
 ﻿import jsPDF from "jspdf";
-import "./HebrewFont-normal";
+import "./HebrewFont-normal.js";
 import { measurementCategories } from "../constants";
 import { getStatus } from "../ranges";
 import { GlucoseMeasurement, MeasurementCategory, RangeConfiguration } from "../types";
