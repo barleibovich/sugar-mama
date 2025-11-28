@@ -79,16 +79,3 @@ vite.config.ts.timestamp-*
 *.pid
 *.seed
 *.pid.lock
-
-############################
-# Fonts (optional)
-############################
-# *.ttf
-# *.woff
-# *.woff2
-
-
-############################
-# Generated PDF Fonts
-############################
-src/pdf/*.js
