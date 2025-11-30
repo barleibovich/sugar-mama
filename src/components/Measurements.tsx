@@ -136,8 +136,8 @@ const Measurements: React.FC<Props> = ({ onBack }) => {
           <p className="muted" style={{ margin: 0 }}>הוסיפי מדידה חדשה כדי להתחיל למלא את הטבלה.</p>
         </div>
       ) : (
-        <div style={{ overflowX: "auto", marginTop: 12 }}>
-          <table className="table" style={{ minWidth: 700 }}>
+        <div style={{ marginTop: 12 }}>
+          <table className="table">
             <thead>
               <tr>
                 <th>תאריך</th>

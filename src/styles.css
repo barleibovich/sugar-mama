@@ -105,6 +105,7 @@ a {
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+  table-layout: fixed;
 }
 
 .table thead th {
@@ -120,6 +121,7 @@ a {
   border-top: 1px solid #e2e8f0;
   border-left: 1px solid #e2e8f0;
   vertical-align: top;
+  word-break: break-word;
 }
 
 .cell-badge {
@@ -292,5 +294,31 @@ a {
   .cta-button {
     padding: 10px 12px;
     font-size: 14px;
+  }
+
+  .table thead th,
+  .table tbody td,
+  .table tbody th {
+    padding: 6px;
+    font-size: 12px;
+  }
+
+  .table th:first-child {
+    width: 26%;
+  }
+
+  .table {
+    font-size: 12px;
+  }
+
+  .cell-badge {
+    font-size: 12px;
+    padding: 5px 6px;
+  }
+
+  .table button.cta-button {
+    font-size: 11px;
+    padding: 6px 8px;
+    white-space: nowrap;
   }
 }
