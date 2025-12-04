@@ -234,14 +234,19 @@ const Cell: React.FC<{
         return (
           <div key={m.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <div>
-              <div style={{ fontWeight: 700 }}>{`${m.value} ${m.unit}`}</div>
+              <div style={{ fontWeight: 700, fontSize: 14, direction: "ltr" }}>{`${m.value} ${m.unit}`}</div>
               <div className="muted" style={{ fontSize: 13 }}>
                 {new Date(m.timestamp).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}
               </div>
             </div>
             <div className={className}>{label}</div>
-            <button className="cta-button secondary" onClick={() => onDelete(m.id)} style={{ padding: "6px 8px" }}>
+            <button
+              className="cta-button secondary"
+              onClick={() => onDelete(m.id)}
+              style={{ padding: "4px 6px", display: "inline-flex",flexDirection: "column", alignItems: "center", gap: 4, fontSize: 12 }}
+            >
               מחיקה
+              <span style={{ fontSize: 14 }}>🗑️</span>
             </button>
           </div>
         );

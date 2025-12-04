@@ -124,13 +124,20 @@ a {
   word-break: break-word;
 }
 
+.table th:first-child,
+.table td:first-child {
+  width: 10%;
+  white-space: normal;
+}
+
 .cell-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
-  border-radius: 10px;
+  gap: 4px;
+  padding: 4px 6px;
+  border-radius: 8px;
   font-weight: 600;
+  font-size: 12px;
   margin-bottom: 6px;
 }
 
