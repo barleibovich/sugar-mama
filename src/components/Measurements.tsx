@@ -140,7 +140,7 @@ const Measurements: React.FC<Props> = ({ onBack }) => {
           <p className="muted" style={{ margin: 0 }}>הוסיפי מדידה חדשה כדי להתחיל למלא את הטבלה.</p>
         </div>
       ) : (
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 12 }} className="table-scroll">
           <table className="table">
             <thead>
               <tr>
@@ -234,7 +234,7 @@ const Cell: React.FC<{
         return (
           <div key={m.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <div>
-              <div style={{ fontWeight: 700, fontSize: 14, direction: "ltr" }}>{`${m.value} ${m.unit}`}</div>
+              <div className="measurement-value">{`${m.value} ${m.unit}`}</div>
               <div className="muted" style={{ fontSize: 13 }}>
                 {new Date(m.timestamp).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}
               </div>

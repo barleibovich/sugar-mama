@@ -124,6 +124,21 @@ a {
   word-break: break-word;
 }
 
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-scroll .table {
+  min-width: 760px;
+}
+
+.measurement-value {
+  font-weight: 700;
+  font-size: 14px;
+  direction: ltr;
+}
+
 .table th:first-child,
 .table td:first-child {
   width: 10%;
@@ -303,29 +318,31 @@ a {
     font-size: 14px;
   }
 
+  .table {
+    font-size: 11px;
+    table-layout: auto;
+  }
+
   .table thead th,
   .table tbody td,
   .table tbody th {
-    padding: 6px;
+    padding: 4px;
     font-size: 9px;
+    line-height: 1.2;
   }
 
   .table th:first-child {
     width: 26%;
   }
 
-  .table {
-    font-size: 12px;
-  }
-
   .table tbody td {
     white-space: nowrap;
     word-break: keep-all;
-    line-height: 1.25;
+    line-height: 1.2;
   }
 
   .table tbody th {
-    white-space: normal;
+    white-space: nowrap;
   }
 
   .table tbody td .muted {
@@ -340,6 +357,14 @@ a {
   .cell-badge {
     font-size: 8px;
     padding: 3px 4px;
+  }
+
+  .measurement-value {
+    font-size: 11px;
+  }
+
+  .table-scroll .table {
+    min-width: 680px;
   }
 
   .table button.cta-button {
