@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { measurementCategories } from "../constants";
 import { defaultRanges, getStatus } from "../ranges";
-import { supabase } from "../supabaseClient";
+import { supabase, supabaseAvailable } from "../supabaseClient";
 import { GlucoseMeasurement, MeasurementCategory, MeasurementStatus, RangeConfiguration } from "../types";
 import { useAuth } from "./AuthProvider";
 
@@ -40,7 +40,7 @@ export const MeasurementProvider: React.FC<React.PropsWithChildren> = ({ childre
   const categories: MeasurementCategory[] = useMemo(() => measurementCategories, []);
 
   useEffect(() => {
-    if (!user) {
+    if (!user || !supabaseAvailable || !supabase) {
       setMeasurements([]);
       return;
     }
@@ -71,6 +71,7 @@ export const MeasurementProvider: React.FC<React.PropsWithChildren> = ({ childre
 
   const addMeasurement = async (value: number, category: MeasurementCategory, timestamp: string) => {
     if (!user) throw new Error("Not authenticated");
+    if (!supabaseAvailable || !supabase) throw new Error("Supabase is not configured.");
     const status = getStatus(value, category, rangeConfig);
     const { data, error } = await supabase
       .from("measurements")
@@ -98,6 +99,7 @@ export const MeasurementProvider: React.FC<React.PropsWithChildren> = ({ childre
     payload: Partial<Pick<GlucoseMeasurement, "value" | "timestamp" | "category">>
   ) => {
     if (!user) throw new Error("Not authenticated");
+    if (!supabaseAvailable || !supabase) throw new Error("Supabase is not configured.");
     const current = measurements.find((m) => m.id === id);
     if (!current) return;
 
@@ -130,6 +132,7 @@ export const MeasurementProvider: React.FC<React.PropsWithChildren> = ({ childre
 
   const deleteMeasurement = async (id: string) => {
     if (!user) throw new Error("Not authenticated");
+    if (!supabaseAvailable || !supabase) throw new Error("Supabase is not configured.");
     const { error } = await supabase.from("measurements").delete().eq("id", id).eq("user_id", user.id);
     if (error) {
       console.error("Failed to delete measurement:", error.message);
