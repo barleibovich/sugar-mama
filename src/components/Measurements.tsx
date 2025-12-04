@@ -156,7 +156,7 @@ const Measurements: React.FC<Props> = ({ onBack }) => {
                   <th scope="row">
                     <div>
                       <div style={{ fontWeight: 700 }}>{row.displayDate}</div>
-                      <div className="muted" style={{ fontSize: 13 }}>
+                      <div className="muted" style={{ fontSize: 8 }}>
                         {row.weekday}
                       </div>
                     </div>
@@ -235,7 +235,7 @@ const Cell: React.FC<{
           <div key={m.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <div>
               <div className="measurement-value">{`${m.value} ${m.unit}`}</div>
-              <div className="muted" style={{ fontSize: 13 }}>
+              <div className="muted" style={{ fontSize: 8 }}>
                 {new Date(m.timestamp).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}
               </div>
             </div>
@@ -243,10 +243,10 @@ const Cell: React.FC<{
             <button
               className="cta-button secondary"
               onClick={() => onDelete(m.id)}
-              style={{ padding: "4px 6px", display: "inline-flex",flexDirection: "column", alignItems: "center", gap: 4, fontSize: 12 }}
+              style={{ padding: "3px 5px", display: "inline-flex", flexDirection: "column", alignItems: "center", gap: 3, fontSize: 9 }}
             >
               מחיקה
-              <span style={{ fontSize: 14 }}>🗑️</span>
+              <span style={{ fontSize: 9 }}>🗑️</span>
             </button>
           </div>
         );
