@@ -1,93 +1,140 @@
-﻿import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { measurementCategories } from "../constants";
 import { defaultRanges, getStatus } from "../ranges";
-import { GlucoseMeasurement, MeasurementCategory, RangeConfiguration } from "../types";
-
-const legacyCategoryMap: Record<string, MeasurementCategory> = {
-  Fasting: "צום",
-  "After Breakfast": "אחרי ארוחת בוקר",
-  "After Lunch": "אחרי ארוחת צהריים",
-  "After Dinner": "אחרי ארוחת ערב",
-  "Before Sleep": "אחרי ארוחת ערב",
-};
+import { supabase } from "../supabaseClient";
+import { GlucoseMeasurement, MeasurementCategory, MeasurementStatus, RangeConfiguration } from "../types";
+import { useAuth } from "./AuthProvider";
 
 interface MeasurementContextValue {
   measurements: GlucoseMeasurement[];
   rangeConfig: RangeConfiguration;
   categories: MeasurementCategory[];
-  addMeasurement: (value: number, category: MeasurementCategory, timestamp: string) => void;
-  deleteMeasurement: (id: string) => void;
+  addMeasurement: (value: number, category: MeasurementCategory, timestamp: string) => Promise<void>;
+  updateMeasurement: (
+    id: string,
+    payload: Partial<Pick<GlucoseMeasurement, "value" | "timestamp" | "category">>
+  ) => Promise<void>;
+  deleteMeasurement: (id: string) => Promise<void>;
   setRangeConfig: (config: RangeConfiguration) => void;
+  loading: boolean;
 }
+
+type MeasurementRow = {
+  id: string;
+  user_id: string;
+  date: string;
+  type: MeasurementCategory;
+  value: number;
+  status: MeasurementStatus;
+  created_at?: string;
+};
 
 const MeasurementContext = createContext<MeasurementContextValue | null>(null);
 
-const MEASUREMENTS_KEY = "sugermama.measurements.v1";
-const RANGES_KEY = "sugermama.ranges.v1";
-
 export const MeasurementProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
-  const [rangeConfig, setRangeConfig] = useState<RangeConfiguration>(() => {
-    const stored = localStorage.getItem(RANGES_KEY);
-    if (!stored) return defaultRanges;
-    try {
-      const parsed = JSON.parse(stored) as RangeConfiguration;
-      const migrated: RangeConfiguration = {};
-      Object.entries(parsed).forEach(([key, value]) => {
-        const newKey = legacyCategoryMap[key] ?? key;
-        migrated[newKey] = value;
-      });
-      return normalizeRanges({ ...defaultRanges, ...migrated });
-    } catch {
-      return defaultRanges;
-    }
-  });
-
-  const [measurements, setMeasurements] = useState<GlucoseMeasurement[]>(() => {
-    const stored = localStorage.getItem(MEASUREMENTS_KEY);
-    if (!stored) return [];
-    try {
-      const parsed = JSON.parse(stored) as GlucoseMeasurement[];
-      return parsed
-        .map((m) => {
-          const category = legacyCategoryMap[m.category] ?? (m.category as MeasurementCategory);
-          return {
-            ...m,
-            category,
-            status: getStatus(m.value, category, defaultRanges),
-          };
-        })
-        .filter((m) => measurementCategories.includes(m.category));
-    } catch {
-      return [];
-    }
-  });
-
-  useEffect(() => {
-    localStorage.setItem(MEASUREMENTS_KEY, JSON.stringify(measurements));
-  }, [measurements]);
-
-  useEffect(() => {
-    localStorage.setItem(RANGES_KEY, JSON.stringify(rangeConfig));
-  }, [rangeConfig]);
+  const { user } = useAuth();
+  const [rangeConfig, setRangeConfig] = useState<RangeConfiguration>(defaultRanges);
+  const [measurements, setMeasurements] = useState<GlucoseMeasurement[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const categories: MeasurementCategory[] = useMemo(() => measurementCategories, []);
 
-  const addMeasurement = (value: number, category: MeasurementCategory, timestamp: string) => {
-    const status = getStatus(value, category, rangeConfig);
-    const entry: GlucoseMeasurement = {
-      id: crypto.randomUUID(),
-      value,
-      unit: "mg/dL",
-      timestamp,
-      category,
-      status,
+  useEffect(() => {
+    if (!user) {
+      setMeasurements([]);
+      return;
+    }
+
+    let isMounted = true;
+    const fetchData = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("measurements")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("date", { ascending: false });
+
+      if (error) {
+        console.error("Failed to load measurements:", error.message);
+      } else if (isMounted) {
+        const mapped = (data ?? []).map(mapRowToMeasurement);
+        setMeasurements(mapped);
+      }
+      if (isMounted) setLoading(false);
     };
-    setMeasurements((prev) =>
-      [entry, ...prev].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-    );
+
+    fetchData();
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
+
+  const addMeasurement = async (value: number, category: MeasurementCategory, timestamp: string) => {
+    if (!user) throw new Error("Not authenticated");
+    const status = getStatus(value, category, rangeConfig);
+    const { data, error } = await supabase
+      .from("measurements")
+      .insert({
+        user_id: user.id,
+        date: timestamp,
+        type: category,
+        value,
+        status,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Failed to add measurement:", error.message);
+      throw error;
+    }
+
+    const mapped = mapRowToMeasurement(data as MeasurementRow);
+    setMeasurements((prev) => [mapped, ...prev].sort(sortByTimestampDesc));
   };
 
-  const deleteMeasurement = (id: string) => {
+  const updateMeasurement = async (
+    id: string,
+    payload: Partial<Pick<GlucoseMeasurement, "value" | "timestamp" | "category">>
+  ) => {
+    if (!user) throw new Error("Not authenticated");
+    const current = measurements.find((m) => m.id === id);
+    if (!current) return;
+
+    const nextCategory = payload.category ?? current.category;
+    const nextTimestamp = payload.timestamp ?? current.timestamp;
+    const nextValue = payload.value ?? current.value;
+    const status = getStatus(nextValue, nextCategory, rangeConfig);
+
+    const { data, error } = await supabase
+      .from("measurements")
+      .update({
+        value: nextValue,
+        date: nextTimestamp,
+        type: nextCategory,
+        status,
+      })
+      .eq("id", id)
+      .eq("user_id", user.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Failed to update measurement:", error.message);
+      throw error;
+    }
+
+    const mapped = mapRowToMeasurement(data as MeasurementRow);
+    setMeasurements((prev) => prev.map((m) => (m.id === id ? mapped : m)).sort(sortByTimestampDesc));
+  };
+
+  const deleteMeasurement = async (id: string) => {
+    if (!user) throw new Error("Not authenticated");
+    const { error } = await supabase.from("measurements").delete().eq("id", id).eq("user_id", user.id);
+    if (error) {
+      console.error("Failed to delete measurement:", error.message);
+      throw error;
+    }
     setMeasurements((prev) => prev.filter((m) => m.id !== id));
   };
 
@@ -96,8 +143,10 @@ export const MeasurementProvider: React.FC<React.PropsWithChildren> = ({ childre
     rangeConfig,
     categories,
     addMeasurement,
+    updateMeasurement,
     deleteMeasurement,
     setRangeConfig,
+    loading,
   };
 
   return <MeasurementContext.Provider value={value}>{children}</MeasurementContext.Provider>;
@@ -109,15 +158,17 @@ export function useMeasurements() {
   return ctx;
 }
 
-function normalizeRanges(ranges: RangeConfiguration): RangeConfiguration {
-  const normalized: RangeConfiguration = {};
-  measurementCategories.forEach((cat) => {
-    const current = ranges[cat] ?? defaultRanges[cat];
-    const def = defaultRanges[cat];
-    normalized[cat] = {
-      lower: Math.max(current.lower, def.lower),
-      upper: Math.min(current.upper, def.upper),
-    };
-  });
-  return normalized;
+function mapRowToMeasurement(row: MeasurementRow): GlucoseMeasurement {
+  return {
+    id: row.id,
+    value: row.value,
+    unit: "mg/dL",
+    timestamp: row.date,
+    category: row.type,
+    status: row.status,
+  };
+}
+
+function sortByTimestampDesc(a: GlucoseMeasurement, b: GlucoseMeasurement) {
+  return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
 }

@@ -300,7 +300,7 @@ a {
   .table tbody td,
   .table tbody th {
     padding: 6px;
-    font-size: 12px;
+    font-size: 9px;
   }
 
   .table th:first-child {
@@ -311,13 +311,32 @@ a {
     font-size: 12px;
   }
 
+  .table tbody td {
+    white-space: nowrap;
+    word-break: keep-all;
+    line-height: 1.25;
+  }
+
+  .table tbody th {
+    white-space: normal;
+  }
+
+  .table tbody td .muted {
+    font-size: 10px;
+  }
+
+  .table tbody th .muted {
+    font-size: 10px;
+    line-height: 1.2;
+  }
+
   .cell-badge {
-    font-size: 12px;
-    padding: 5px 6px;
+    font-size: 8px;
+    padding: 3px 4px;
   }
 
   .table button.cta-button {
-    font-size: 11px;
+    font-size: 8px;
     padding: 6px 8px;
     white-space: nowrap;
   }

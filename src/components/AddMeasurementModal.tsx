@@ -22,6 +22,8 @@ const AddMeasurementModal: React.FC<Props> = ({ category, onClose, defaultTimest
   const [ocrProgress, setOcrProgress] = useState(0);
   const [ocrError, setOcrError] = useState<string | null>(null);
   const [ocrHint, setOcrHint] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const parsedValue = useMemo(() => Number.parseInt(value, 10), [value]);
@@ -39,11 +41,20 @@ const AddMeasurementModal: React.FC<Props> = ({ category, onClose, defaultTimest
     return () => clearTimeout(timer);
   }, []);
 
-  const save = () => {
-    if (Number.isNaN(parsedValue)) return;
-    const dateIso = new Date(timestamp).toISOString();
-    addMeasurement(parsedValue, selectedCategory, dateIso);
-    onClose();
+  const save = async () => {
+    if (Number.isNaN(parsedValue) || saving) return;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const dateIso = new Date(timestamp).toISOString();
+      await addMeasurement(parsedValue, selectedCategory, dateIso);
+      onClose();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "אירעה שגיאה בשמירת המדידה";
+      setSaveError(message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const triggerOcrPicker = () => {
@@ -65,15 +76,15 @@ const AddMeasurementModal: React.FC<Props> = ({ category, onClose, defaultTimest
       const { value: detected, rawText } = await runOcrOnImage(file, (progress) => setOcrProgress(Math.round(progress * 100)));
       if (detected !== undefined && !Number.isNaN(detected)) {
         setValue(detected.toString());
-        setOcrHint(`הערך שזוהה: ${detected}`);
+        setOcrHint(`ערך שהתקבל בקריאה: ${detected}`);
       } else {
-        setOcrError("לא הצלחתי לזהות מספר ברור. נסי תמונה חדה יותר.");
+        setOcrError("לא זיהינו מספר תקין בטקסט. נסו לצלם שוב באור בהיר.");
       }
       if (rawText.trim()) {
-        setOcrHint((prev) => prev ?? `טקסט מזוהה: ${rawText.trim()}`);
+        setOcrHint((prev) => prev ?? `טקסט שזוהה: ${rawText.trim()}`);
       }
     } catch (err) {
-      setOcrError("אירעה שגיאה בזמן הזיהוי. נסי שוב.");
+      setOcrError("הייתה בעיה בהרצת הזיהוי. נסו שוב.");
     } finally {
       setOcrLoading(false);
       setOcrProgress(0);
@@ -103,23 +114,21 @@ const AddMeasurementModal: React.FC<Props> = ({ category, onClose, defaultTimest
             </select>
           )}
           <span className="muted" style={{ fontSize: 13 }}>
-            {lockCategory
-              ? "הקטגוריה ננעלת לפי התא שבחרת."
-              : "בחרי את הקטגוריה המתאימה. ניתן להוסיף מדידות לכמה קטגוריות ביום."}
+            בחרי באיזו קטגוריה להוסיף את המדידה.
           </span>
         </div>
 
         <div className="field">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <label htmlFor="glucose-input">ערך הגלוקוז (mg/dL)</label>
+            <label htmlFor="glucose-input">ערך סוכר (mg/dL)</label>
             <button type="button" className="cta-button secondary" onClick={triggerOcrPicker} disabled={ocrLoading}>
-              {ocrLoading ? "סורקת..." : "סריקת ערך מתמונה"}
+              {ocrLoading ? "מריץ זיהוי..." : "זיהוי ערך מתמונה"}
             </button>
           </div>
           <input
             id="glucose-input"
             inputMode="numeric"
-            placeholder="לדוגמה 104"
+            placeholder="דוגמא 104"
             value={value}
             onChange={(e) => setValue(e.target.value)}
           />
@@ -133,7 +142,7 @@ const AddMeasurementModal: React.FC<Props> = ({ category, onClose, defaultTimest
           />
           {ocrLoading && (
             <div className="muted" style={{ marginTop: 6 }}>
-              סורקת את התמונה... {ocrProgress ? `${ocrProgress}%` : ""}
+              מריץ זיהוי... {ocrProgress ? `${ocrProgress}%` : ""}
             </div>
           )}
           {ocrHint && <div style={{ marginTop: 6, color: "#0f172a" }}>{ocrHint}</div>}
@@ -141,28 +150,29 @@ const AddMeasurementModal: React.FC<Props> = ({ category, onClose, defaultTimest
         </div>
 
         <div className="field">
-          <label>זמן מדידה</label>
+          <label>תאריך ושעה</label>
           <input type="datetime-local" value={timestamp} onChange={(e) => setTimestamp(e.target.value)} />
         </div>
 
         <div className="field">
-          <label>סטטוס</label>
+          <label>טווח סטטוס</label>
           {statusPreview ? (
             <StatusBadge status={statusPreview} />
           ) : (
-            <span className="muted">הזיני ערך כדי לראות אם הוא בטווח, מעל או מתחת.</span>
+            <span className="muted">הקלידי ערך כדי לראות האם הוא בטווח.</span>
           )}
           <span className="muted" style={{ fontSize: 13 }}>
-            החיווי מותאם לפי הטווחים שהגדרת בהגדרות.
+            החישוב נעשה לפי הטווחים המוגדרים כעת.
           </span>
         </div>
 
-        <div style={{ display: "flex", gap: 10, marginTop: 14, justifyContent: "flex-end" }}>
-          <button className="cta-button secondary" onClick={onClose}>
+        <div style={{ display: "flex", gap: 10, marginTop: 14, justifyContent: "flex-end", alignItems: "center" }}>
+          {saveError && <span className="muted" style={{ color: "#b91c1c" }}>{saveError}</span>}
+          <button className="cta-button secondary" onClick={onClose} disabled={saving}>
             ביטול
           </button>
-          <button className="cta-button" onClick={save} disabled={Number.isNaN(parsedValue)}>
-            שמירה
+          <button className="cta-button" onClick={save} disabled={Number.isNaN(parsedValue) || saving}>
+            {saving ? "שומר..." : "שמירה"}
           </button>
         </div>
       </div>

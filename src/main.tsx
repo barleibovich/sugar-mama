@@ -3,12 +3,15 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./styles.css";
 import { MeasurementProvider } from "./context/MeasurementProvider";
+import { AuthProvider } from "./context/AuthProvider";
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-    <MeasurementProvider>
-      <App />
-    </MeasurementProvider>
+    <AuthProvider>
+      <MeasurementProvider>
+        <App />
+      </MeasurementProvider>
+    </AuthProvider>
   </React.StrictMode>
 );
 

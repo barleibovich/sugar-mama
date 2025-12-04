@@ -11,7 +11,7 @@ interface Props {
 type PdfRangeOption = "week" | "month" | "threeMonths" | "all";
 
 const Measurements: React.FC<Props> = ({ onBack }) => {
-  const { measurements, categories, deleteMeasurement, rangeConfig } = useMeasurements();
+  const { measurements, categories, deleteMeasurement, rangeConfig, loading } = useMeasurements();
   const [exporting, setExporting] = useState(false);
   const [addContext, setAddContext] = useState<{ category: MeasurementCategory; date?: Date; lockCategory?: boolean } | null>(
     null
@@ -130,7 +130,11 @@ const Measurements: React.FC<Props> = ({ onBack }) => {
         </button>
       </div>
 
-      {tableRows.length === 0 ? (
+      {loading ? (
+        <div className="card" style={{ background: "#f8fafc", borderStyle: "dashed", borderColor: "#cbd5e1", marginTop: 12 }}>
+          <h4 style={{ margin: "4px 0" }}>טוען מדידות...</h4>
+        </div>
+      ) : tableRows.length === 0 ? (
         <div className="card" style={{ background: "#f8fafc", borderStyle: "dashed", borderColor: "#cbd5e1", marginTop: 12 }}>
           <h4 style={{ margin: "4px 0" }}>אין מדידות להצגה בטווח הנוכחי.</h4>
           <p className="muted" style={{ margin: 0 }}>הוסיפי מדידה חדשה כדי להתחיל למלא את הטבלה.</p>
@@ -277,7 +281,7 @@ function buildGrid(
     .map((row) => ({
       key: row.date.toISOString(),
       date: row.date,
-      displayDate: row.date.toLocaleDateString("he-IL", { dateStyle: "medium" }),
+      displayDate: row.date.toLocaleDateString("he-IL", { day: "2-digit", month: "2-digit", year: "2-digit" }),
       weekday: row.date.toLocaleDateString("he-IL", { weekday: "long" }),
       cells: row.cells,
     }));
