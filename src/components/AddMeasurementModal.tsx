@@ -2,7 +2,9 @@ import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useMeasurements } from "../context/MeasurementProvider";
 import { getStatus } from "../ranges";
 import { MeasurementCategory, MeasurementStatus } from "../types";
-import { runOcrOnImage } from "../utils/ocr";
+import { scanWithGemini } from "../utils/ocr";
+
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY ?? "AIzaSyDaeMiPpgTHrzsfqcqBbEaq1Y-gaPGjNA8";
 
 interface Props {
   category: MeasurementCategory;
@@ -68,24 +70,33 @@ const AddMeasurementModal: React.FC<Props> = ({ category, onClose, defaultTimest
     e.target.value = "";
     if (!file) return;
 
+    if (!GEMINI_API_KEY) {
+      setOcrError("Gemini API key is missing. Please set VITE_GEMINI_API_KEY.");
+      return;
+    }
+
     setOcrError(null);
     setOcrHint(null);
     setOcrProgress(0);
     setOcrLoading(true);
+    const objectUrl = URL.createObjectURL(file);
     try {
-      const { value: detected, rawText } = await runOcrOnImage(file, (progress) => setOcrProgress(Math.round(progress * 100)));
-      if (detected !== undefined && !Number.isNaN(detected)) {
-        setValue(detected.toString());
-        setOcrHint(`ערך שהתקבל בקריאה: ${detected}`);
+      const detected = await scanWithGemini(objectUrl, GEMINI_API_KEY);
+      if (detected !== null && !Number.isNaN(detected)) {
+        const confirmed = window.confirm(`ערך סוכר מזוהה: ${detected}. לאשר הזנה?`);
+        if (confirmed) {
+          setValue(detected.toString());
+          setOcrHint(`ערך סוכר מזוהה: ${detected}`);
+        } else {
+          setOcrHint("הזיהוי בוטל. ניתן לנסות שוב או להזין ידנית.");
+        }
       } else {
-        setOcrError("לא זיהינו מספר תקין בטקסט. נסו לצלם שוב באור בהיר.");
-      }
-      if (rawText.trim()) {
-        setOcrHint((prev) => prev ?? `טקסט שזוהה: ${rawText.trim()}`);
+        setOcrError("Could not read a numeric glucose value from the image.");
       }
     } catch (err) {
-      setOcrError("הייתה בעיה בהרצת הזיהוי. נסו שוב.");
+      setOcrError("Gemini could not scan the image. Please try again.");
     } finally {
+      URL.revokeObjectURL(objectUrl);
       setOcrLoading(false);
       setOcrProgress(0);
     }
